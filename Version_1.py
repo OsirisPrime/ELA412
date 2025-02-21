@@ -9,14 +9,14 @@ def load_edf_file(file_path):
     return raw
 
 # Perform PCA
-def perform_pca(data, n_components=5):
+def perform_pca(data, n_components=4):
     n_components = min(n_components, min(data.shape))  # Ensure valid n_components
     pca = PCA(n_components=n_components)
     pca_components = pca.fit_transform(data)
     return pca_components
 
 # Perform ICA
-def perform_ica(data, n_components=5):
+def perform_ica(data, n_components=4):
     n_components = min(n_components, min(data.shape))  # Ensure valid n_components
     ica = FastICA(n_components=n_components)
     ica_components = ica.fit_transform(data)
@@ -41,14 +41,14 @@ def plot_original_signal(data, channel_names):
     plt.figure(figsize=(12, 6))
     for i in range(data.shape[0]):
         plt.plot(time, data[i, :], label=channel_names[i])
-    plt.title('Original ECG Signals')
+    plt.title('Direct Fetal ECG Signals')
     plt.xlabel('Time (samples)')
     plt.ylabel('Amplitude')
     plt.legend()
     plt.grid(True)
     plt.show()
 
-def main(file_path, n_components=5):
+def main(file_path, n_components=4):
     # Load the EDF file
     raw_data = load_edf_file(file_path)
 
@@ -83,3 +83,8 @@ def main(file_path, n_components=5):
     plot_components(ica_maternal, 'ICA - Maternal ECG')
     plot_components(pca_fetal, 'PCA - Fetal ECG')
     plot_components(ica_fetal, 'ICA - Fetal ECG')
+
+if __name__ == "__main__":
+    # Replace with your EDF file path
+    file_path = "C:/Users/kimsv/OneDrive - Mälardalens universitet/Desktop/r01.edf"
+    main(file_path)

@@ -58,7 +58,7 @@ def main(file_path, n_components=4):
     maternal_ecg_channels = channel_names[1:5]  # Assuming next four channels are mECG
 
     # Apply filtering specific to ECG
-    raw_data.filter(l_freq=0.5, h_freq=100.0)
+    #raw_data.filter(l_freq=0.5, h_freq=100.0)
 
     # Extract data separately
     fetal_data = raw_data.copy().pick_channels(fetal_ecg_channel).get_data()

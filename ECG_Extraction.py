@@ -1,7 +1,6 @@
 from sklearn.decomposition import PCA, FastICA
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
-from scipy.signal import welch
 import numpy as np
 import mne
 
@@ -27,7 +26,7 @@ def perform_pca(data, n_components=4):
 
     # Correct polarity if needed
     for i in range(pca_components_sorted.shape[1]):
-        if np.mean(pca_components_sorted[:, i]) > 0:
+        if np.mean(pca_components_sorted[:, i]) < 0:
             pca_components_sorted[:, i] = -pca_components_sorted[:, i]  # Flip the signal if its mean is positive
 
     plot_pca_variance(pca)
@@ -45,7 +44,7 @@ def perform_ica(data, n_components=4):
 
     # Correct polarity if needed
     for i in range(ica_components_sorted.shape[1]):
-        if np.mean(ica_components_sorted[:, i]) > 0:
+        if np.mean(ica_components_sorted[:, i]) < 0:
             ica_components_sorted[:, i] = -ica_components_sorted[:, i]  # Flip the signal if its mean is positive
 
     return ica_components_sorted
@@ -62,20 +61,6 @@ def plot_pca_variance(pca):
     plt.title("PCA Explained Variance")
     plt.legend()
     plt.grid(True)
-    plt.show()
-
-# Compute Power Spectral Density (PSD)
-def compute_psd(components, fs=500):
-    plt.figure(figsize=(12, 6))
-    for i in range(components.shape[1]):
-        freqs, psd = welch(components[:, i], fs=fs, nperseg=fs * 2)
-        plt.semilogy(freqs, psd, label=f'ICA Component {i + 1}')
-
-    plt.xlabel("Frequency (Hz)")
-    plt.ylabel("Power Spectral Density")
-    plt.title("Power Spectral Density of ICA Components")
-    plt.legend()
-    plt.grid()
     plt.show()
 
 # Save results to a file
@@ -133,7 +118,7 @@ def main(file_path, n_components=4):
     abdominal_ecg_channels = channel_names[1:5]  # Assuming next four channels are mECG
 
     # Apply filtering specific to ECG
-    raw_data.filter(l_freq=0.5, h_freq=40.0, picks="all", method="fir")
+    raw_data.filter(l_freq=1, h_freq=100.0, fir_design="firwin")
 
     # Extract data separately
     fetal_data = raw_data.copy().pick(fetal_ecg_channel).get_data()
@@ -158,9 +143,6 @@ def main(file_path, n_components=4):
     # Plot PCA and ICA components
     plot_components(pca_maternal, 'PCA - Abdominal ECG')
     plot_components(ica_maternal, 'ICA - Abdominal ECG')
-
-    print("Analyzing frequency content to identify fetal ECG...")
-    compute_psd(ica_maternal)
 
     print("Fetal ECG extraction complete!")
 

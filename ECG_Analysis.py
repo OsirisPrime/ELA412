@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import find_peaks
+from scipy.signal import welch, find_peaks
+import mne
 
 def load_results(filename):
     return np.loadtxt(filename, delimiter=",")
@@ -25,6 +26,30 @@ def plot_components(components, title_prefix):
 
     plt.xlabel('Time (samples)')
     plt.tight_layout()
+    plt.show()
+
+def flip_ecg_signal(ecg_signal):
+    return -ecg_signal
+
+
+def apply_lowpass_filter(ecg_signal, fs=1000):
+    info = mne.create_info(ch_names=['ECG'], sfreq=fs, ch_types=['ecg'])
+    raw = mne.io.RawArray(ecg_signal[np.newaxis, :], info)  # Convert to MNE RawArray
+    raw.filter(l_freq=1, h_freq=50, method='fir', fir_design='firwin', phase='zero', picks=[0])  # 👈 Explicitly pick channel index 0
+    return raw.get_data()[0]  # Return filtered ECG signal
+
+# Compute Power Spectral Density (PSD)
+def compute_psd(components, fs=1000):
+    plt.figure(figsize=(12, 6))
+    for i in range(components.shape[1]):
+        freqs, psd = welch(components[:, i], fs=fs, nperseg=fs * 2)
+        plt.semilogy(freqs, psd, label=f'ICA Component {i + 1}')
+
+    plt.xlabel("Frequency (Hz)")
+    plt.ylabel("Power Spectral Density")
+    plt.title("Power Spectral Density of ICA Components")
+    plt.legend()
+    plt.grid()
     plt.show()
 
 # R-Peak detection function (detects R-waves in the fetal ECG signal)
@@ -73,6 +98,9 @@ def main():
     plot_components(pca_results, 'PCA')
     plot_components(ica_results, 'ICA')
 
+    print("Analyzing frequency content to identify fetal ECG...")
+    compute_psd(ica_results)
+
     # Manually select the maternal and fetal ECG component
     maternal_ecg_component_index = int(input("Enter the index of the maternal ECG component (Normally 0): "))
     fetal_ecg_component_index = int(input("Enter the index of the fetal ECG component (Normally 1): "))
@@ -81,17 +109,20 @@ def main():
     maternal_ecg = ica_results[:, maternal_ecg_component_index]
     fetal_ecg = ica_results[:, fetal_ecg_component_index]
 
+    # Flip fetal ECG if necessary
+    fetal_ecg = flip_ecg_signal(fetal_ecg)
+
+    # Apply low-pass filtering (1–50 Hz) to remove high-frequency noise
+    maternal_ecg = apply_lowpass_filter(maternal_ecg)
+    fetal_ecg = apply_lowpass_filter(fetal_ecg)
+
     # Detect R-peaks (RR peaks) in the fetal ECG signal
     maternal_rr_peaks = detect_rr_peaks(maternal_ecg, distance=400, height=2)
-    fetal_rr_peaks = detect_rr_peaks(fetal_ecg, distance=100, height=0.65)
+    fetal_rr_peaks = detect_rr_peaks(fetal_ecg, distance=1, height=1.25)
 
     # Plot the cleaned fetal ECG with RR peaks
     plot_ecg_with_rr_peaks(maternal_ecg, maternal_rr_peaks, fetal_ecg, fetal_rr_peaks)
     print("Fetal ECG analysis complete!")
-
-    # Save the extracted fetal ECG signal
-    np.savetxt("fetal_ecg.csv", fetal_ecg, delimiter=",")
-    print("Saved fetal ECG as fetal_ecg.csv")
 
 if __name__ == "__main__":
     main()

@@ -29,7 +29,6 @@ def perform_pca(data, n_components=4):
         if np.mean(pca_components_sorted[:, i]) < 0:
             pca_components_sorted[:, i] = -pca_components_sorted[:, i]  # Flip the signal if its mean is positive
 
-    plot_pca_variance(pca)
     return pca_components_sorted
 
 # Perform ICA
@@ -48,20 +47,6 @@ def perform_ica(data, n_components=4):
             ica_components_sorted[:, i] = -ica_components_sorted[:, i]  # Flip the signal if its mean is positive
 
     return ica_components_sorted
-
-# Plot the explained variance ratio of PCA components
-def plot_pca_variance(pca):
-    explained_variance = pca.explained_variance_ratio_
-
-    plt.figure(figsize=(10, 5))
-    plt.bar(range(1, len(explained_variance) + 1), explained_variance * 100, alpha=0.7, label="Individual Variance")
-
-    plt.xlabel("Principal Component")
-    plt.ylabel("Variance Explained (%)")
-    plt.title("PCA Explained Variance")
-    plt.legend()
-    plt.grid(True)
-    plt.show()
 
 # Save results to a file
 def save_results(filename, data):

@@ -31,6 +31,17 @@ def plot_components(components, title_prefix):
 def flip_ecg_signal(ecg_signal):
     return -ecg_signal
 
+def plot_explained_variance(pca_results):
+    explained_variance = np.var(pca_results, axis=0)  # Compute variance of each component
+    explained_variance_ratio = explained_variance / np.sum(explained_variance)  # Normalize to get ratio
+
+    plt.figure(figsize=(10, 5))
+    plt.bar(range(1, len(explained_variance_ratio) + 1), explained_variance_ratio * 100, alpha=0.7)
+    plt.xlabel("Principal Component")
+    plt.ylabel("Explained Variance (%)")
+    plt.title("Explained Variance of PCA Components")
+    plt.grid(True)
+    plt.show()
 
 def apply_lowpass_filter(ecg_signal, fs=1000):
     info = mne.create_info(ch_names=['ECG'], sfreq=fs, ch_types=['ecg'])
@@ -97,6 +108,9 @@ def main():
 
     plot_components(pca_results, 'PCA')
     plot_components(ica_results, 'ICA')
+
+    print("Plotting explained variance for PCA components...")
+    plot_explained_variance(pca_results)
 
     print("Analyzing frequency content to identify fetal ECG...")
     compute_psd(ica_results)

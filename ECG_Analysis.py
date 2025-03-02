@@ -1,10 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import welch, find_peaks
+from scipy.signal import welch, find_peaks, butter, filtfilt
 import mne
 
 def load_results(filename):
-    return np.loadtxt(filename, delimiter=",")
+    return np.array(np.loadtxt(filename, delimiter=","))
 
 def plot_components(components, title_prefix):
     time = np.arange(components.shape[0])
@@ -64,11 +64,13 @@ def plot_explained_variance(pca_results):
     plt.grid(True)
     plt.show()
 
-def apply_lowpass_filter(ecg_signal, fs=1000):
-    info = mne.create_info(ch_names=['ECG'], sfreq=fs, ch_types=['ecg'])
-    raw = mne.io.RawArray(ecg_signal[np.newaxis, :], info)  # Convert to MNE RawArray
-    raw.filter(l_freq=1, h_freq=50, method='fir', fir_design='firwin', phase='zero', picks=[0])  # 👈 Explicitly pick channel index 0
-    return raw.get_data()[0]  # Return filtered ECG signal
+def bandpass_filter(data, fs=1000, lowcut=1, highcut=100, order=4):
+    nyquist = 0.5 * fs
+    low = lowcut / nyquist
+    high = highcut / nyquist
+    b, a = butter(order, [low, high], btype='band')  # Design bandpass filter
+    filtered_data = filtfilt(b, a, data, axis=0)  # Apply filter to each column
+    return filtered_data
 
 # Compute Power Spectral Density (PSD)
 def compute_psd(components, fs=1000):
@@ -134,6 +136,10 @@ def main():
     pca_results = load_results("pca_results.csv")
     ica_results = load_results("ica_results.csv")
 
+    print("Applying band-pass filter (1-100 Hz) to PCA and ICA results...")
+    pca_results = bandpass_filter(pca_results)
+    ica_results = bandpass_filter(ica_results)
+
     plot_components(pca_results, 'PCA')
     plot_components(ica_results, 'ICA')
 
@@ -157,10 +163,6 @@ def main():
 
     # Flip fetal ECG if necessary
     fetal_ecg = flip_ecg_signal(fetal_ecg)
-
-    # Apply low-pass filtering (1–50 Hz) to remove high-frequency noise
-    maternal_ecg = apply_lowpass_filter(maternal_ecg)
-    fetal_ecg = apply_lowpass_filter(fetal_ecg)
 
     # Detect R-peaks (RR peaks) in the fetal ECG signal
     maternal_rr_peaks = detect_rr_peaks(maternal_ecg, distance=400, height=2)

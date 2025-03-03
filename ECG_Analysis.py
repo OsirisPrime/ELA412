@@ -60,7 +60,7 @@ def compute_psd(components, fs=1000, title_prefix="ICA"):
 
     plt.xlabel("Frequency (Hz)")
     plt.ylabel("Power Spectral Density")
-    plt.title(f"f'Power Spectral Density of {title_prefix} Components")
+    plt.title(f"Power Spectral Density of {title_prefix} Components")
     plt.legend()
     plt.grid()
     plt.show()
@@ -138,7 +138,7 @@ def main():
     fetal_ecg = ica_results[:, fetal_ecg_component_index]
 
     # Flip fetal ECG if necessary
-    fetal_ecg = flip_ecg_signal(fetal_ecg)
+    #fetal_ecg = flip_ecg_signal(fetal_ecg)
 
     # Detect R-peaks (RR peaks) in the fetal ECG signal
     maternal_rr_peaks = detect_rr_peaks(maternal_ecg, distance=400, height=2)

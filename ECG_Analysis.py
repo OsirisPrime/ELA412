@@ -31,27 +31,6 @@ def plot_components(components, title_prefix):
 def flip_ecg_signal(ecg_signal):
     return -ecg_signal
 
-def compute_fft(components, fs=1000, title_prefix="ICA"):
-    num_components = components.shape[1]
-    num_samples = components.shape[0]
-    freqs = np.fft.rfftfreq(num_samples, 1/fs)  # Compute frequency bins
-    fig, axes = plt.subplots(num_components, 1, figsize=(12, 3 * num_components), sharex=True)
-
-    if num_components == 1:
-        axes = [axes]  # Ensure axes is iterable for single-component case
-
-    for i, ax in enumerate(axes):
-        fft_magnitude = np.abs(np.fft.rfft(components[:, i]))  # Compute magnitude spectrum
-        ax.plot(freqs, fft_magnitude, color='b', linewidth=1.5)
-        ax.set_xlim(0, 150)  # Restrict x-axis to max_freq Hz
-        ax.set_title(f'FFT of {title_prefix} Component {i + 1}')
-        ax.set_ylabel("Magnitude")
-        ax.grid(True)
-
-    plt.xlabel("Frequency (Hz)")
-    plt.tight_layout()
-    plt.show()
-
 def plot_explained_variance(pca_results):
     explained_variance = np.var(pca_results, axis=0)  # Compute variance of each component
     explained_variance_ratio = explained_variance / np.sum(explained_variance)  # Normalize to get ratio
@@ -73,7 +52,7 @@ def bandpass_filter(data, fs=1000, lowcut=1, highcut=100, order=4):
     return filtered_data
 
 # Compute Power Spectral Density (PSD)
-def compute_psd(components, fs=1000):
+def compute_psd(components, fs=1000, title_prefix="ICA"):
     plt.figure(figsize=(12, 6))
     for i in range(components.shape[1]):
         freqs, psd = welch(components[:, i], fs=fs, nperseg=fs * 2)
@@ -81,7 +60,7 @@ def compute_psd(components, fs=1000):
 
     plt.xlabel("Frequency (Hz)")
     plt.ylabel("Power Spectral Density")
-    plt.title("Power Spectral Density of ICA Components")
+    plt.title(f"f'Power Spectral Density of {title_prefix} Components")
     plt.legend()
     plt.grid()
     plt.show()
@@ -147,11 +126,8 @@ def main():
     plot_explained_variance(pca_results)
 
     print("Analyzing frequency content to identify fetal ECG...")
-    compute_psd(ica_results)
-
-    print("Performing FFT analysis to inspect frequency content...")
-    compute_fft(pca_results, title_prefix="PCA")
-    compute_fft(ica_results, title_prefix="ICA")
+    compute_psd(pca_results, title_prefix="PCA")
+    compute_psd(ica_results, title_prefix="ICA")
 
     # Manually select the maternal and fetal ECG component
     maternal_ecg_component_index = int(input("Enter the index of the maternal ECG component (Normally 0): "))

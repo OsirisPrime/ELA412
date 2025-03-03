@@ -103,7 +103,7 @@ def main(file_path, n_components=4):
     abdominal_ecg_channels = channel_names[1:5]  # Assuming next four channels are mECG
 
     # Apply filtering specific to ECG
-    raw_data.filter(l_freq=1, h_freq=100.0, fir_design="firwin")
+    raw_data.filter(l_freq=1, h_freq=150.0, fir_design="firwin")
 
     # Extract data separately
     fetal_data = raw_data.copy().pick(fetal_ecg_channel).get_data()

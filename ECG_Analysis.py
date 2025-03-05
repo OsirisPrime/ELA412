@@ -22,6 +22,8 @@ def plot_components(components, title_prefix):
             ax.plot(time, components[:, i])
             ax.set_title(f'{title_prefix} Component {i + 1}')
             ax.set_ylabel('Amplitude')
+            ax.set_xlim(0, 10000)  # Corrected
+            ax.set_ylim(-6, 6)  # Corrected
             ax.grid(True)
 
     plt.xlabel('Time (samples)')
@@ -56,11 +58,13 @@ def compute_psd(components, fs=1000, title_prefix="ICA"):
     plt.figure(figsize=(12, 6))
     for i in range(components.shape[1]):
         freqs, psd = welch(components[:, i], fs=fs, nperseg=fs * 2)
-        plt.semilogy(freqs, psd, label=f'ICA Component {i + 1}')
+        plt.semilogy(freqs, psd, label=f'{title_prefix} Component {i + 1}')
 
     plt.xlabel("Frequency (Hz)")
     plt.ylabel("Power Spectral Density")
     plt.title(f"Power Spectral Density of {title_prefix} Components")
+    #plt.xlim(0, 100)
+    #plt.ylim(1e-6, 0)
     plt.legend()
     plt.grid()
     plt.show()
@@ -87,6 +91,8 @@ def plot_ecg_with_rr_peaks(ecg_signal_1, rr_peaks_1, ecg_signal_2, rr_peaks_2):
     axes[0].plot(rr_peaks_1, ecg_signal_1[rr_peaks_1], "rx", label="Maternal R-peaks", markersize=8)
     axes[0].set_title("Maternal ECG with R-peaks")
     axes[0].set_ylabel("Amplitude")
+    axes[0].set_xlim(0, 5000)
+    axes[0].set_ylim(-6, 8)
     axes[0].legend()
     axes[0].grid(True)
 
@@ -95,6 +101,8 @@ def plot_ecg_with_rr_peaks(ecg_signal_1, rr_peaks_1, ecg_signal_2, rr_peaks_2):
     axes[1].plot(rr_peaks_2, ecg_signal_2[rr_peaks_2], "bx", label="Fetal R-peaks", markersize=8)
     axes[1].set_title("Fetal ECG with R-peaks")
     axes[1].set_ylabel("Amplitude")
+    axes[1].set_xlim(0, 5000)
+    axes[1].set_ylim(-6, 8)
     axes[1].legend()
     axes[1].grid(True)
 
@@ -104,6 +112,8 @@ def plot_ecg_with_rr_peaks(ecg_signal_1, rr_peaks_1, ecg_signal_2, rr_peaks_2):
     axes[2].set_title("Overlap of Maternal and Fetal ECG")
     axes[2].set_xlabel("Time (samples)")
     axes[2].set_ylabel("Amplitude")
+    axes[2].set_xlim(0, 5000)
+    axes[2].set_ylim(-6, 8)
     axes[2].legend()
     axes[2].grid(True)
 
@@ -114,11 +124,13 @@ def plot_ecg_with_rr_peaks(ecg_signal_1, rr_peaks_1, ecg_signal_2, rr_peaks_2):
 def main():
     pca_results = load_results("pca_results.csv")
     ica_results = load_results("ica_results.csv")
+    direct_fetal = load_results("direct_fetal")
 
     print("Applying band-pass filter (1-100 Hz) to PCA and ICA results...")
     pca_results = bandpass_filter(pca_results)
     ica_results = bandpass_filter(ica_results)
 
+    plot_components(direct_fetal, 'Direct')
     plot_components(pca_results, 'PCA')
     plot_components(ica_results, 'ICA')
 
@@ -130,22 +142,29 @@ def main():
     compute_psd(ica_results, title_prefix="ICA")
 
     # Manually select the maternal and fetal ECG component
-    maternal_ecg_component_index = int(input("Enter the index of the maternal ECG component (Normally 0): "))
-    fetal_ecg_component_index = int(input("Enter the index of the fetal ECG component (Normally 1): "))
+    maternal_PCA_ecg_component_index = int(input("Enter the index of the PCA maternal ECG component (Normally 1): "))
+    fetal_PCA_ecg_component_index = int(input("Enter the index of the PCA fetal ECG component (Normally 0): "))
+    maternal_ICA_ecg_component_index = int(input("Enter the index of the ICA maternal ECG component (Normally 1): "))
+    fetal_ICA_ecg_component_index = int(input("Enter the index of the ICA fetal ECG component (Normally 2): "))
 
     # Extract fetal ECG signal
-    maternal_ecg = ica_results[:, maternal_ecg_component_index]
-    fetal_ecg = ica_results[:, fetal_ecg_component_index]
+    maternal_PCA_ecg = pca_results[:, maternal_PCA_ecg_component_index]
+    fetal_PCA_ecg = pca_results[:, fetal_PCA_ecg_component_index]
+    maternal_ICA_ecg = ica_results[:, maternal_ICA_ecg_component_index]
+    fetal_ICA_ecg = ica_results[:, fetal_ICA_ecg_component_index]
 
     # Flip fetal ECG if necessary
     #fetal_ecg = flip_ecg_signal(fetal_ecg)
 
     # Detect R-peaks (RR peaks) in the fetal ECG signal
-    maternal_rr_peaks = detect_rr_peaks(maternal_ecg, distance=400, height=2)
-    fetal_rr_peaks = detect_rr_peaks(fetal_ecg, distance=1, height=1.25)
+    maternal_PCA_rr_peaks = detect_rr_peaks(maternal_PCA_ecg, distance=400, height=2)
+    fetal_PCA_rr_peaks = detect_rr_peaks(fetal_PCA_ecg, distance=1, height=1.25)
+    maternal_ICA_rr_peaks = detect_rr_peaks(maternal_ICA_ecg, distance=400, height=2)
+    fetal_ICA_rr_peaks = detect_rr_peaks(fetal_ICA_ecg, distance=1, height=1.25)
 
     # Plot the cleaned fetal ECG with RR peaks
-    plot_ecg_with_rr_peaks(maternal_ecg, maternal_rr_peaks, fetal_ecg, fetal_rr_peaks)
+    plot_ecg_with_rr_peaks(maternal_PCA_ecg, maternal_PCA_rr_peaks, fetal_PCA_ecg, fetal_PCA_rr_peaks)
+    plot_ecg_with_rr_peaks(maternal_ICA_ecg, maternal_ICA_rr_peaks, fetal_ICA_ecg, fetal_ICA_rr_peaks)
     print("Fetal ECG analysis complete!")
 
 if __name__ == "__main__":
